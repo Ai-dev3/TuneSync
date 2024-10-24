@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuneSync</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: #C21807;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .button {
+            background-color: #C21807;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .button:hover {
+            background-color: #800000;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background-color: #C21807;
+            color: white;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .file-label:hover {
+            background-color: #800000;
+        }
+
+        .footer {
+            background-color: #C21807;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header section -->
+    <div class="header">
+        <h1>TuneSync</h1>
+    </div>
+
+    <!-- Main content section -->
+    <div class="content">
+        <h2>Upload Two Audios to Compare</h2>
+        <form id="uploadForm" style="display: flex; flex-direction: column; align-items: center;">
+            <input type="file" id="file1" class="file-input" required>
+            <label for="file1" class="file-label">Upload Audio 1</label>
+            <input type="file" id="file2" class="file-input" required>
+            <label for="file2" class="file-label">Upload Audio 2</label>
+            <button type="submit" class="button">Upload & Compare</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <!-- Footer section -->
+    <div class="footer">
+        <button class="button" onclick="window.location.href='pastrecordings.html';">View Past Recordings</button>
+    </div>
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async function(event) {
+            event.preventDefault();
+
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
+
+            if (!file1 || !file2) {
+                document.getElementById('result').innerText = 'Please upload both files.';
+                console.log('Error: One or both files are missing.');
+                return;
+            }
+
+            // Show status message in the browser
+            document.getElementById('result').innerText = 'Processing...';
+
+            try {
+                // Convert the audio files to tensors
+                const tensor1 = await audioFileToTensor(file1);
+                const tensor2 = await audioFileToTensor(file2);
+
+                // Trim the longer tensor to match the shorter tensor
+                const trimmedTensors = trimTensorsToSameLength(tensor1, tensor2);
+                const trimmedTensor1 = trimmedTensors[0];
+                const trimmedTensor2 = trimmedTensors[1];
+
+                // Calculate similarity between the trimmed tensors
+                const similarity = calculateCosineSimilarity(trimmedTensor1, trimmedTensor2);
+                const similarityPercentage = clampPercentage((similarity * 100).toFixed(2)); // Convert to percentage and clamp
+
+                // Save the audio files and similarity score to localStorage (in Base64)
+                await saveRecordings(file1, file2, similarityPercentage);
+
+                // Redirect to result page
+                window.location.href = 'results.html';
+            } catch (error) {
+                console.error('An error occurred during processing:', error);
+                document.getElementById('result').innerText = 'An error occurred during processing. See console for details.';
+            }
+        }
+
+        async function audioFileToTensor(file) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const fileData = await file.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(fileData);
+            const channelData = audioBuffer.getChannelData(0); // Take only the first channel
+            return tf.tensor(channelData);
+        }
+
+        function calculateCosineSimilarity(tensor1, tensor2) {
+            const dotProduct = tf.sum(tf.mul(tensor1, tensor2)).arraySync();
+            const magnitude1 = tf.sqrt(tf.sum(tf.square(tensor1))).arraySync();
+            const magnitude2 = tf.sqrt(tf.sum(tf.square(tensor2))).arraySync();
+            return dotProduct / (magnitude1 * magnitude2);
+        }
+
+        function trimTensorsToSameLength(tensor1, tensor2) {
+            const length1 = tensor1.shape[0];
+            const length2 = tensor2.shape[0];
+            const minLength = Math.min(length1, length2);
+            return [tensor1.slice([0], [minLength]), tensor2.slice([0], [minLength])];
+        }
+
+        async function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function saveRecordings(file1, file2, similarity) {
+            const base64File1 = await fileToBase64(file1);
+            const base64File2 = await fileToBase64(file2);
+
+            const recordings = JSON.parse(localStorage.getItem('recordings')) || [];
+            recordings.unshift({ 
+                file1: base64File1, 
+                file2: base64File2, 
+                similarity 
+            });
+
+            if (recordings.length > 3) {
+                recordings.length = 3; // Keep only the last 3 recordings
+            }
+
+            localStorage.setItem('recordings', JSON.stringify(recordings));
+            localStorage.setItem('similarityScore', similarity); // Save the similarity score
+        }
+
+        function clampPercentage(value) {
+            return Math.max(0, Math.min(100, value));
+        }
+    </script>
+</body>
+</html>
