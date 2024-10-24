@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuneSync</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header, .footer {
+            background-color: #C21807;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .result-box {
+            font-size: 24px;
+            background-color: #f1f1f1;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .button {
+            background-color: #C21807;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .button:hover {
+            background-color: #800000;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Similarity Score</h1>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="result-box">
+            <h2 id="similarityScore">Loading...</h2>
+            <button class="button" onclick="window.location.href='pastrecordings.html';">View Past Recordings</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <button class="button" onclick="window.location.href='index.html';">Main Page</button>
+    </div>
+
+    <script>
+        // Retrieve similarity score from localStorage
+        const similarityPercentage = localStorage.getItem('similarityScore');
+
+        // Display the result
+        document.getElementById('similarityScore').innerText = similarityPercentage ? `Similarity Score: ${similarityPercentage}%` : 'No score found';
+    </script>
+
+</body>
+</html>
