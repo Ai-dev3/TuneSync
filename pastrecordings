@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Past Audio Recordings</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header, .footer {
+            background-color: #C21807;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .recordings-list {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            list-style: none;
+            padding: 0;
+        }
+
+        .recording-item {
+            background-color: #f1f1f1;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .audio-player {
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            background-color: #C21807;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .button:hover {
+            background-color: #800000;
+        }
+
+        .similarity-score {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header section -->
+    <div class="header">
+        <h1>Past Audio Recordings</h1>
+    </div>
+
+    <!-- Main content section -->
+    <div class="content">
+        <h2>Your Previous Uploads</h2>
+        <ul id="recordingsList" class="recordings-list"></ul>
+        <button class="button" onclick="window.location.href='index.html';">Back to Main Page</button>
+    </div>
+
+    <!-- Footer section -->
+    <div class="footer">
+        <p>&copy; 2024 TuneSync</p>
+    </div>
+
+    <script>
+        // Fetch the stored audio files and similarity scores from localStorage
+        const recordingsList = document.getElementById('recordingsList');
+        const recordings = JSON.parse(localStorage.getItem('recordings')) || [];
+
+        // If there are recordings in localStorage, display them as audio players
+        if (recordings.length > 0) {
+            recordings.forEach((recording, index) => {
+                recordingsList.innerHTML += `
+                    <li class="recording-item">
+                        <h3>Recording Pair ${index + 1}</h3>
+                        <audio controls class="audio-player">
+                            <source src="${recording.file1}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <audio controls class="audio-player">
+                            <source src="${recording.file2}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <div class="similarity-score">Similarity Score: ${recording.similarity} %</div>
+                    </li>
+                `;
+            });
+        } else {
+            // If there are no recordings, show a message
+            recordingsList.innerHTML = '<p>No recordings found. Please upload files on the main page.</p>';
+        }
+    </script>
+</body>
+</html>
